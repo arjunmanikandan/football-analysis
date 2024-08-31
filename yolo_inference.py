@@ -2,7 +2,7 @@ import cv2
 from ultralytics import YOLO
 
 model = YOLO("models/football_detection.pt")
-cap = cv2.VideoCapture("input_videos/ars_vs_wol.mp4")
+cap = cv2.VideoCapture("input_videos/ars_vs_wolves.mp4")
 
 while cap.isOpened():
     ret, frame = cap.read()
