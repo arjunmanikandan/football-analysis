@@ -14,8 +14,11 @@ def main():
     read_from_stub=True,
     stub_path='stubs/track_stubs.pkl')
     
-    # output_video_path = os.path.join("output_videos", "detected.avi")
-    # save_video(video_frames,output_video_path)
+    #Draw Shapes around players
+    output_video_frames = tracker.draw_annotations(video_frames, tracks)
+    
+    output_video_path = os.path.join("output_videos", "detected.avi")
+    save_video(output_video_frames,output_video_path)
 
 if __name__ == "__main__":
     main()

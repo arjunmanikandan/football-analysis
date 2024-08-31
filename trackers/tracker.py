@@ -2,6 +2,8 @@ from ultralytics import YOLO
 import supervision as sv
 import pickle
 import os
+import cv2
+from utils import get_bbox_width,get_center_of_bbox
 
 class Tracker:
     def __init__(self, model_path):
@@ -45,7 +47,7 @@ class Tracker:
                 if cls_names[class_id] == "goalkeeper":
                     detection_supervision.class_id[object_ind] = cls_names_inv["player"]
 
-            # Track Objects
+            # Track Objects 
             detection_with_tracks = self.tracker.update_with_detections(detection_supervision)
 
             tracks["players"].append({})
@@ -75,3 +77,47 @@ class Tracker:
                     pickle.dump(tracks,f)
 
         return tracks
+    
+    #Bounding Box gives us the width, height and center
+    #With that, ellipse is drawn in that place on that frame with cv.ellipse
+    #So frames are passed
+    def draw_ellipse(self, frame, bbox, color, track_id):
+        y2 = int(bbox[3])
+        x2 = int(bbox[2])
+        x_center,y_center=get_center_of_bbox(bbox)
+        width = get_bbox_width(bbox)
+    
+        cv2.ellipse(
+            frame,
+            center=(x_center,y2),
+            axes=(int(width),int(0.35*width)),
+            angle=0.0,
+            startAngle=0,
+            endAngle=360,
+            color=color,
+            thickness=3,
+            lineType=cv2.LINE_4)
+        
+        cv2.putText(frame, f"ID: {track_id}", (x_center - 10, y_center - 10), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        
+        return frame
+    
+    #Construct circle around the player
+    #tracks is a dict which has three keys players,referees and ball
+    #Values: [{track_id:{bbox:[]}},{},{}..] of all three classes
+    def draw_annotations(self, video_frames, tracks):
+        output_video_frames = []
+        for frame_num, frame in enumerate(video_frames):
+            frame = frame.copy()
+            player_dict = tracks["players"][frame_num]
+            ball_dict = tracks["ball"][frame_num]
+            referee_dict = tracks["referees"][frame_num]
+            
+            #Drawing ellipses for all frames of a player and then appending
+            for track_id, player in player_dict.items():
+                frame = self.draw_ellipse(frame, player["bbox"],(19,202,235), track_id)
+                
+            output_video_frames.append(frame)
+            
+        return output_video_frames
