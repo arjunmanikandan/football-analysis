@@ -3,6 +3,7 @@ import supervision as sv
 import pickle
 import os
 import cv2
+import numpy as np
 from utils import get_bbox_width,get_center_of_bbox
 
 class Tracker:
@@ -78,6 +79,11 @@ class Tracker:
 
         return tracks
     
+    @staticmethod
+    def put_Text(frame, track_id, x_center, y_center, color):
+        cv2.putText(frame, f"ID: {track_id}", (x_center - 10, y_center - 10), 
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        
     #Bounding Box gives us the width, height and center
     #With that, ellipse is drawn in that place on that frame with cv.ellipse
     #So frames are passed
@@ -98,9 +104,24 @@ class Tracker:
             thickness=3,
             lineType=cv2.LINE_4)
         
-        cv2.putText(frame, f"ID: {track_id}", (x_center - 10, y_center - 10), 
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        self.put_Text(frame, track_id, x_center, y_center, color)
+        return frame
+    
+    def draw_triangle(self, frame, bbox, color,track_id):
+        y = int(bbox[1])
+        x_center, y_center = get_center_of_bbox(bbox)
+
+        triangle_points = np.array([
+            [x_center, y],
+            [x_center-10, y - 20],
+            [x_center + 10, y - 20], 
+        ])
         
+        # Draw the filled triangle
+        cv2.drawContours(frame, [triangle_points], 0, color, cv2.FILLED)
+        # Draw the border of the triangle
+        cv2.drawContours(frame, [triangle_points], 0, (0, 0, 0), 2)
+        self.put_Text(frame, track_id, x_center, y_center, color)
         return frame
     
     #Construct circle around the player
@@ -115,8 +136,12 @@ class Tracker:
             referee_dict = tracks["referees"][frame_num]
             
             #Drawing ellipses for all frames of a player and then appending
+
             for track_id, player in player_dict.items():
                 frame = self.draw_ellipse(frame, player["bbox"],(19,202,235), track_id)
+
+            for track_id, referee in ball_dict.items() or referee_dict.items():
+                frame = self.draw_triangle(frame, referee["bbox"],(44,198,63), track_id)
                 
             output_video_frames.append(frame)
             
